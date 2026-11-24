@@ -1,72 +1,137 @@
 # Langton Ant Lab
 
-A neon, interactive Langton's ant laboratory built with **Three.js** and **Vite**.
-A tiny two-rule universe grows into a colorful colony, then suddenly locks into a
-repeating highway. The Loop Lab catches the moment it happens.
+A neon, interactive **Langton's ant** playground built with **Three.js** and **Vite**.
+Watch a tiny two-rule automaton grow a colorful colony, detect the moment its local
+pattern starts repeating, and frame the loop that emerges.
 
 ![Langton Ant Lab](preview.png)
 
-## Run it
+## Features
 
-This checkout is already installed. From PowerShell:
+- **451 × 451 finite grid** with a custom shader grid, bloom, and a hand-drawn SVG ant.
+- **Colorful path tiles** in two palettes: a time-and-space spectrum, or one fixed
+  color per rule state.
+- **Generalized rules** with `R`, `L`, `N`, and `U` turns, plus six presets and a
+  random-rule button.
+- **Loop Lab** that fingerprints the 21 × 21 neighborhood around the ant, reports the
+  period and drift of a recurrence, and draws the cycle.
+- **Shareable states** through URL parameters.
+- **Responsive UI** with keyboard shortcuts, touch-friendly controls, and auto-follow.
+
+## Quick start
+
+### Requirements
+
+- **Node.js 20.19+ or 22.12+** (includes npm)
+- A modern browser with **WebGL 2** enabled
+- **Git** (only if you are cloning the repository)
+
+No API keys, environment variables, backend, or database are required.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/dmoreira-git/langton-ant-js.git
+cd langton-ant-js
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Start the development server
+
+```bash
+npm run dev
+```
+
+Open **http://localhost:5173/** in your browser. The server prints the exact URL when
+it starts. Leave the terminal open while you use the app.
+
+### Using pnpm instead
+
+```bash
+pnpm install
+pnpm dev
+```
+
+The repository includes a `pnpm-workspace.yaml` that selects pnpm's flat `hoisted`
+linker. npm users do not need this file and can ignore it.
+
+### Windows shortcut
+
+If you are on Windows and have already run `npm install`, you can start the server
+by double-clicking **`run.cmd`** or running:
 
 ```powershell
 .\run.cmd
 ```
 
-Then open **http://127.0.0.1:5173/**.
+This file is an optional convenience; `npm install` and `npm run dev` work on every
+platform.
 
-If Node.js 20+ and pnpm are already on your PATH, the standard commands work too:
+## Controls
 
-```powershell
-pnpm install
-pnpm dev
-```
-
-On this Windows machine pnpm's default junction links were malformed, so the
-project uses a flat, hoisted install (`node-linker=hoisted`). The launchers use the
-Node copy bundled with the harness when `node` is not on PATH.
-
-| Command | What it does |
+| Input | Action |
 | --- | --- |
-| `.\run.cmd` | Starts the Vite dev server at `127.0.0.1:5173` |
-| `.\install.cmd` | Reinstalls dependencies (hoisted) |
-| `pnpm build` | Production build in `dist/` |
-| `pnpm preview` | Serves the production build |
+| `Space` | Play / pause |
+| `→` | Advance one step |
+| `R` | Reset the colony |
+| `F` | Frame the detected loop |
+| Drag | Pan the camera (turns off auto-follow) |
+| Scroll | Zoom at the cursor |
+| Double-click | Recenter and resume auto-follow |
+| `+` / `−` / home button | Camera controls |
 
-## The rule
+Auto-follow keeps the growing colony framed while it runs. Panning or zooming hands
+the camera to you; the home button or a double-click gives it back.
 
-Each character in a rule is the turn taken on that cell state:
+## How Langton's ant works
 
-- `R` — turn right
-- `L` — turn left
-- `N` — go straight
-- `U` — turn around
+Each character in a rule is the turn the ant takes when it lands on that cell state:
 
-The ant reads the tile, turns, flips the tile to its next state, and moves one cell
-forward. For the classic `RL` rule: state `0` turns right and becomes `1`; state `1`
-turns left and becomes `0`. No randomness.
+| Symbol | Turn |
+| --- | --- |
+| `R` | Right |
+| `L` | Left |
+| `N` | Straight |
+| `U` | U-turn |
 
-The grid is **451 × 451** and finite. When the ant reaches the edge, the walk stops
-until you reset — zoom out or pan if you want to watch the edge approach.
+On every tick the ant:
+
+1. Reads the state of the cell beneath it.
+2. Looks up the corresponding turn in the rule.
+3. Advances that cell to its next state.
+4. Moves one cell forward.
+
+For the classic `RL` rule, state `0` turns right and flips to `1`; state `1` turns
+left and flips to `0`. There is no randomness.
+
+The grid is finite, so the ant stops when it reaches an edge. Reset to start a new
+walk, or zoom out to watch the edge approach.
 
 ## The Loop Lab
 
-The ant's most famous trick is the **highway**: after wandering for roughly 10,000
-steps, the classic rule starts repeating a 104-step pattern that translates across
-the grid forever.
+After roughly 10,000 steps, the classic rule stops wandering and begins building a
+**104-step highway** that translates across the grid indefinitely. The Loop Lab finds
+recurrences like this automatically.
 
-The Loop Lab fingerprints the **21 × 21 cell patch around the ant**. If an identical
-patch returns, it records:
+It fingerprints a **21 × 21 patch** around the ant. When an identical patch returns,
+it records:
 
-- **Period** — steps between recurrences
-- **Drift** — how far the pattern moved, in cells per cycle (`Δx, Δy`)
-- **Found at** — the step where the recurrence was detected
+- **Period** — the number of steps between recurrences.
+- **Drift** — how far the pattern moved per cycle, in cells (`Δx, Δy`).
+- **Found at** — the step at which the recurrence was detected.
 
-The mint trace draws one full period. The **ring** marks the start; the **diamond**
-marks the end, so you can see the drift. **Frame loop** (`F`) zooms to the trace.
+The mint trace draws one complete period. A **ring** marks the start and a **diamond**
+marks the end, making the drift visible. Select **Frame loop** (or press `F`) to zoom
+to the trace.
 
 ### Preset outcomes
+
+Exact detection steps depend on the rule, but the loops are stable:
 
 | Preset | Rule | Period | Drift | Typically found |
 | --- | --- | ---: | --- | ---: |
@@ -77,78 +142,93 @@ marks the end, so you can see the drift. **Frame loop** (`F`) zooms to the trace
 | Slow burn | `LRRRRRLLR` | 374 | `+1, -1` | ~28,827 |
 | Wanderer | `LLRR` | — | — | no early loop |
 
-Different rules make very different loops: boxes, glides, long slow recurrences, or
-no local recurrence at all. Randomize the rule and the detector will keep listening.
-
-## Controls
-
-| Input | Action |
-| --- | --- |
-| `Space` | Play / pause |
-| `→` | Step once |
-| `R` | Reset |
-| `F` | Frame the detected loop |
-| Drag | Pan (turns off auto-follow) |
-| Scroll | Zoom at the cursor |
-| Double-click | Recenter and resume auto-follow |
-| `+` / `−` / home button | Camera controls |
-
-**Auto-follow** keeps the growing colony framed while it is running. Panning or
-zooming hands the camera to you; the home button (or double-click) gives it back.
+Different rules produce boxes, glides, long slow recurrences, or no local recurrence
+at all. Randomize the rule and the detector keeps listening.
 
 ## Shareable states
 
-Deep links are useful for demos and bug reports:
+With the dev server running, add these query parameters to the page URL:
 
 ```text
-?steps=11200                 jump to step 11,200
-?rule=RR&steps=400           load a rule and jump ahead
-?rule=RL&steps=10525&frame=1 jump to the highway and frame its loop
-?panel=1                     open the controls sheet on a narrow screen
+?steps=11200                  jump ahead to step 11,200
+?rule=RR&steps=400            load a rule and jump ahead
+?rule=RL&steps=10525&frame=1  jump to the highway and frame its loop
+?panel=1                      open the controls sheet on a narrow screen
 ```
 
-Examples:
+The parameters are read on page load, so they are useful for demos, screenshots, and
+bug reports.
 
-- [Classic, framed highway](http://127.0.0.1:5173/?rule=RL&steps=10525&frame=1)
-- [Tight 8-step orbit](http://127.0.0.1:5173/?rule=RR&steps=400&frame=1)
-- [Nine-state slow burn](http://127.0.0.1:5173/?rule=LRRRRRLLR&steps=28827)
+## Project structure
 
-## Look and feel
-
-- **Spectrum** paints each newly flipped cell with a hue that moves through time
-  and space, so the path becomes a rainbow recording of its own history.
-- **States** gives each rule state a fixed neon color.
-- `0`-state cells that have been visited keep a dim afterglow, so the shape of the
-  path remains readable after tiles flip back.
-- Bloom, a custom grid shader, and a hand-drawn SVG ant do the rest.
-
-The ant SVG lives at [`public/ant.svg`](public/ant.svg) and can be replaced with any
-transparent PNG or SVG of the same portrait orientation (head pointing up).
-
-## Architecture
-
-| File | Purpose |
+| Path | Purpose |
 | --- | --- |
 | [`src/langton.js`](src/langton.js) | Ant state machine, generalized rules, local-patch cycle detector |
 | [`src/main.js`](src/main.js) | Three.js scene, instanced tiles, camera, loop trace, UI wiring |
-| [`src/style.css`](src/style.css) | Dark glass UI, responsive layout |
+| [`src/style.css`](src/style.css) | Dark glass UI and responsive layout |
 | [`public/ant.svg`](public/ant.svg) | The ant sprite |
-| [`vite.config.js`](vite.config.js) | Dev server and build config |
+| [`index.html`](index.html) | Page shell and control markup |
+| [`vite.config.js`](vite.config.js) | Dev server and build configuration |
 
-The 203,401 tiles are one `InstancedMesh` with a single draw call. Tile colors are
-uploaded incrementally as cells flip, using `BufferAttribute` update ranges. The
-grid and glow are shader/bloom effects, not thousands of DOM elements.
+The ant artwork is a standalone SVG. Replace `public/ant.svg` with any transparent
+portrait-oriented image (head pointing up) to change the sprite.
 
-The simulation is exposed for console tinkering:
+## Available scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Create a production build in `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run dev -- --port 5174` | Start on a different port if 5173 is taken |
+
+The same commands work with pnpm (`pnpm dev`, `pnpm build`, and so on).
+
+## How it is built
+
+- **Three.js** renders the tiles as a single `InstancedMesh` with one instanced draw
+  call. Tile colors update incrementally through `BufferAttribute` update ranges.
+- **Vite** provides the dev server and production build.
+- The grid, ambient glow, and vignette are shader effects; bloom is a post-processing
+  pass. There are no per-cell DOM elements.
+- The loop detector stores a 64-bit fingerprint of the local patch and stops once a
+  recurrence is found.
+
+For quick console experiments, the simulation is exposed as `window.antLab`:
 
 ```js
-antLab.sim.steps
-antLab.applyRule('RRL')
-antLab.frameLoop()
-antLab.setPlaying(false)
+antLab.sim.steps;
+antLab.applyRule('RRL');
+antLab.frameLoop();
+antLab.setPlaying(false);
 ```
+
+## Troubleshooting
+
+**The page is blank or WebGL fails to start.**  
+Enable hardware acceleration in your browser and make sure it supports WebGL 2. Try a
+current version of Chrome, Edge, Firefox, or Safari.
+
+**Port 5173 is already in use.**  
+Run `npm run dev -- --port 5174` and open the URL printed by Vite.
+
+**`run.cmd` is blocked by PowerShell.**  
+Use `npm run dev` instead. If you want to use the script, run it with a one-time
+process policy:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1
+```
+
+**Dependencies are missing when starting the Windows shortcut.**  
+Run `npm install` first, then start `run.cmd` again.
+
+**pnpm reports symlink or junction errors on Windows.**  
+Use `npm install` instead. The included `pnpm-workspace.yaml` also selects pnpm's
+flat linker, which avoids the usual junction issues.
 
 ## Credits
 
-Built as a sample Three.js project. Langton's ant was devised by Chris Langton in
-1986. The classic highway behavior was popularized by later computer experiments.
+Langton's ant was devised by **Chris Langton** in 1986. The classic highway behavior
+was popularized by later computer experiments. This implementation and visualization
+were built as a hands-on Three.js sample project.

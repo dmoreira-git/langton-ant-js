@@ -4,6 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "description": "A neon Langton's ant laboratory built with Three.js",
+  "keywords": [
+    "langton-ant",
+    "cellular-automata",
+    "threejs",
+    "visualization",
+    "vite"
+  ],
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
