@@ -1,0 +1,21 @@
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    // Three.js is intentionally one vendor-sized bundle for this sample.
+    chunkSizeWarningLimit: 700,
+  },
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+    watch: {
+      ignored: ['**/.chrome-*', '**/.edge-*', '**/qa-*.png', '**/preview.png'],
+    },
+  },
+  preview: {
+    host: '127.0.0.1',
+    port: 4173,
+    strictPort: true,
+  },
+});

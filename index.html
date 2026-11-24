@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#05060b" />
+    <meta
+      name="description"
+      content="A neon Langton's ant laboratory: watch a tiny rule build infinite patterns, then catch the loops it makes."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Langton Ant Lab — a neon cellular walk</title>
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="scene" aria-label="Top-down visualization of Langton's ant on a grid"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="brand-copy">
+            <h1>LANGTON <em>ANT LAB</em></h1>
+            <p>one rule · infinite pattern</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="stats" aria-label="Simulation statistics">
+            <div class="stat">
+              <span>Steps</span>
+              <strong id="stat-steps">0</strong>
+            </div>
+            <div class="stat">
+              <span>Cells lit</span>
+              <strong id="stat-visited">0</strong>
+            </div>
+            <div class="stat">
+              <span>Loops</span>
+              <strong id="stat-loops">0</strong>
+            </div>
+          </div>
+          <button id="about-open" class="icon-button glass" type="button" aria-label="Read field notes" title="Field notes">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v.01M9.3 9.2a2.8 2.8 0 1 1 4.6 2.2c-.9.7-1.9 1.2-1.9 2.6"/><circle cx="12" cy="12" r="9"/></svg>
+          </button>
+          <button id="panel-toggle" class="icon-button glass panel-toggle" type="button" aria-label="Toggle controls" aria-expanded="false" title="Controls">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <aside id="panel" class="panel" aria-label="Simulation controls">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">CONTROL DECK</span>
+            <h2>Colony settings</h2>
+          </div>
+          <button id="panel-close" class="icon-button subtle panel-close" type="button" aria-label="Close controls">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <section class="block">
+          <div class="section-head">
+            <h3>Rule</h3>
+            <button id="random-rule" class="text-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+              Randomize
+            </button>
+          </div>
+
+          <div id="presets" class="chips" role="group" aria-label="Rule presets"></div>
+
+          <form id="rule-form" class="rule-form" novalidate>
+            <label for="rule-input">Custom rule <span>2–10 states</span></label>
+            <div class="input-row">
+              <input
+                id="rule-input"
+                name="rule"
+                type="text"
+                value="RL"
+                maxlength="10"
+                spellcheck="false"
+                autocomplete="off"
+                aria-describedby="rule-help"
+              />
+              <button type="submit" class="mini-button">Apply</button>
+            </div>
+            <p id="rule-help" class="micro-copy">R = right · L = left · N = straight · U = U-turn</p>
+          </form>
+
+          <div id="rule-legend" class="legend" aria-label="Cell state colors"></div>
+        </section>
+
+        <section class="block">
+          <div class="section-head">
+            <h3>Simulation</h3>
+            <span id="sim-state" class="tag live">RUNNING</span>
+          </div>
+
+          <div class="transport">
+            <button id="play" class="play-button" type="button" aria-label="Pause simulation" aria-pressed="true">
+              <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+              <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>
+              <span>Pause</span>
+            </button>
+            <button id="step" class="icon-button square" type="button" aria-label="Advance one step" title="Step once (→)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5l9 7-9 7zM18 5v14"/></svg>
+            </button>
+            <button id="reset" class="icon-button square" type="button" aria-label="Reset simulation" title="Reset (R)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
+
+          <div class="speed-row">
+            <div class="speed-label">
+              <span>Speed</span>
+              <output id="speed-value" for="speed">650 /s</output>
+            </div>
+            <input id="speed" type="range" min="0" max="100" step="1" value="52" aria-label="Simulation speed" />
+            <div class="range-ticks" aria-hidden="true"><span>slow</span><span>fast</span></div>
+          </div>
+        </section>
+
+        <section class="block loop-lab">
+          <div class="section-head">
+            <h3>Loop lab</h3>
+            <span id="loop-pill" class="tag">SCANNING</span>
+          </div>
+
+          <div class="loop-hero">
+            <div id="loop-orbit" class="loop-orbit" aria-hidden="true">
+              <span></span>
+              <i></i>
+            </div>
+            <div class="loop-hero-copy">
+              <strong id="loop-title">Listening for echoes</strong>
+              <p id="loop-copy">Fingerprinting the 21 × 21 patch around the ant.</p>
+            </div>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <span>Period</span>
+              <strong id="cycle-period">—</strong>
+            </div>
+            <div class="metric">
+              <span>Drift</span>
+              <strong id="cycle-drift">—</strong>
+            </div>
+            <div class="metric">
+              <span>Found at</span>
+              <strong id="cycle-step">—</strong>
+            </div>
+          </div>
+
+          <div class="loop-actions">
+            <button id="frame-loop" class="frame-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+              Frame loop <kbd>F</kbd>
+            </button>
+            <label class="switch">
+              <input id="show-loop" type="checkbox" checked />
+              <span class="switch-track" aria-hidden="true"></span>
+              <span>Trace</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="section-head">
+            <h3>Palette</h3>
+            <span class="tag ghost">PATH</span>
+          </div>
+          <div class="segmented" role="group" aria-label="Path color mode">
+            <button id="color-spectrum" class="active" type="button" aria-pressed="true">Spectrum</button>
+            <button id="color-states" type="button" aria-pressed="false">States</button>
+          </div>
+          <p class="micro-copy">Spectrum paints by when a cell was lit. States paints each rule state its own color.</p>
+        </section>
+
+        <div class="panel-foot">
+          <span><kbd>SPACE</kbd> pause</span>
+          <span><kbd>R</kbd> reset</span>
+          <span><kbd>F</kbd> frame</span>
+        </div>
+      </aside>
+
+      <div class="scene-hint" aria-hidden="true">
+        <span><i class="mouse"></i> drag to pan</span>
+        <span class="dot">·</span>
+        <span>scroll to zoom</span>
+        <span class="dot">·</span>
+        <span>double-click to recenter</span>
+      </div>
+
+      <div class="camera-controls" role="group" aria-label="Camera controls">
+        <button id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+        <button id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+        <button id="camera-home" type="button" aria-label="Recenter and follow the colony" title="Recenter & follow">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+        </button>
+      </div>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+      <dialog id="about" class="about">
+        <div class="about-inner">
+          <div class="about-head">
+            <span class="eyebrow">FIELD NOTES · 001</span>
+            <button id="about-close" class="icon-button subtle" type="button" aria-label="Close field notes">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <h2>An ant with<br /><em>four moves.</em></h2>
+          <p class="lead">
+            Langton's ant is a two-rule universe. It walks a square grid, reads the
+            color of the cell beneath it, turns, flips that cell, and moves forward.
+            That is the whole law.
+          </p>
+
+          <ol class="steps">
+            <li>
+              <span>01</span>
+              <div><strong>Read the tile.</strong> Each state maps to a turn: R, L, N, or U.</div>
+            </li>
+            <li>
+              <span>02</span>
+              <div><strong>Flip it.</strong> The tile advances to its next state and glows in the palette.</div>
+            </li>
+            <li>
+              <span>03</span>
+              <div><strong>Move.</strong> One cell forward. Repeat. No randomness, ever.</div>
+            </li>
+          </ol>
+
+          <div class="formula">
+            <span>THE ORIGINAL</span>
+            <div><b>0</b> → turn right, flip to 1 <i>·</i> <b>1</b> → turn left, flip to 0</div>
+          </div>
+
+          <div class="notes">
+            <h3>Why does it loop?</h3>
+            <p>
+              For the classic rule, the ant wanders chaotically for roughly 10,000
+              steps. Then, without warning, it starts building a repeating 104-step
+              “highway” that translates across the grid forever. The Loop Lab
+              fingerprints a 21 × 21 patch around the ant. When an identical patch
+              returns, it records the period and the drift, and draws the cycle.
+            </p>
+            <p class="muted">
+              Different rules find different loops — or none at all. Try a preset,
+              randomize the rule, and watch how order emerges from a tiny change.
+            </p>
+          </div>
+
+          <div class="about-actions">
+            <button id="about-start" class="primary-button" type="button">Back to the colony</button>
+            <span>Drag · scroll · space</span>
+          </div>
+        </div>
+      </dialog>
+
+      <div id="boot" class="boot" aria-hidden="true">
+        <div class="boot-mark"><span></span><span></span><span></span><span></span></div>
+        <span>Waking the colony</span>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
